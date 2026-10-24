@@ -11,11 +11,22 @@ ini_set('error_log', ROOT . '/storage/php-error.log');
 
 $config = require ROOT . '/config.php';
 
-/** Beží web cez HTTPS (aj za proxy, ktorá HTTPS ukončuje)? */
+/**
+ * Beží web cez HTTPS? Hosting často ukončuje HTTPS na proxy a PHP potom vidí obyčajné HTTP,
+ * preto sa okrem hlavičiek berie za HTTPS aj každá verejná adresa (nie localhost, *.test ani IP).
+ * Odkazy pre klienta, cookie a obrázok pre zdieľanie tak vždy začínajú na https://.
+ */
 function is_https(): bool
 {
-    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'
+        || ($_SERVER['SERVER_PORT'] ?? '') === '443') {
+        return true;
+    }
+    $host = strtolower(explode(':', (string)($_SERVER['HTTP_HOST'] ?? ''))[0]);
+    $local = $host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)
+        || str_ends_with($host, '.test') || str_ends_with($host, '.local') || str_ends_with($host, '.localhost');
+    return !$local;
 }
 
 session_name('kay_admin');
@@ -30,7 +41,7 @@ session_start();
 
 require __DIR__ . '/og.php';
 
-foreach (['originals', 'thumbs', 'views', 'bw', 'og', 'tmp'] as $d) {
+foreach (['originals', 'thumbs', 'views', 'og', 'tmp'] as $d) {
     if (!is_dir(STORAGE . "/$d")) {
         mkdir(STORAGE . "/$d", 0775, true);
     }
@@ -388,39 +399,24 @@ function ensure_derivative(string $kind, array $photo): void
     }
 }
 
-/** Black & white JPEG version of the original, cached on disk. */
-function bw_path(array $photo): ?string
-{
-    $dest = photo_path('bw', $photo) . '.jpg';
-    if (is_file($dest)) {
-        return $dest;
-    }
-    $img = load_image(photo_path('originals', $photo));
-    if (!$img) {
-        return null;
-    }
-    imagefilter($img, IMG_FILTER_GRAYSCALE);
-    imagefilter($img, IMG_FILTER_CONTRAST, -12);
-    if (!is_dir(dirname($dest))) {
-        mkdir(dirname($dest), 0775, true);
-    }
-    imagejpeg($img, $dest, 92);
-    return $dest;
-}
-
 function send_file(string $path, string $mime, ?string $downloadName = null, bool $cache = true): never
 {
     if (!is_file($path)) {
         not_found();
     }
+    while (ob_get_level()) { // nič nesmie predbehnúť hlavičky ani sa pridať do súboru
+        ob_end_clean();
+    }
     header('Content-Type: ' . $mime);
     header('Content-Length: ' . filesize($path));
+    header('X-Content-Type-Options: nosniff');
     if ($cache) {
         header('Cache-Control: private, max-age=604800');
     }
     if ($downloadName) {
-        $safe = preg_replace('/[^\w.\- ]+/u', '_', $downloadName);
-        header('Content-Disposition: attachment; filename="' . $safe . '"');
+        // ASCII názov pre staré prehliadače + správny UTF-8 názov (RFC 5987), ktorý používa Safari na iPhone
+        $ascii = trim((string)preg_replace('/[^A-Za-z0-9._ -]+/', '_', slugify(pathinfo($downloadName, PATHINFO_FILENAME)) . '.' . pathinfo($downloadName, PATHINFO_EXTENSION)), '. ');
+        header('Content-Disposition: attachment; filename="' . ($ascii ?: 'subor') . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
     }
     readfile($path);
     exit;
@@ -445,5 +441,4 @@ function delete_photo_files(array $photo): void
     foreach (['originals', 'thumbs', 'views'] as $k) {
         @unlink(photo_path($k, $photo));
     }
-    @unlink(photo_path('bw', $photo) . '.jpg');
 }

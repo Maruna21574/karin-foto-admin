@@ -134,7 +134,7 @@ if ($sub === 'slug') {
 // ---- zmazanie galérie
 if ($sub === 'delete') {
     db()->prepare('DELETE FROM galleries WHERE id = ?')->execute([$gallery['id']]);
-    foreach (['originals', 'thumbs', 'views', 'bw'] as $k) {
+    foreach (['originals', 'thumbs', 'views'] as $k) {
         delete_dir(STORAGE . "/$k/{$gallery['id']}");
     }
     redirect('admin');

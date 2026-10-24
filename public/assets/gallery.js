@@ -9,7 +9,6 @@
   let filter = 'all';
   let list = [];
   let idx = 0;
-  let bw = false;
 
   const src = (p, kind) => `${base}/img/${p.id}/${kind}`;
   const toast = (msg) => {
@@ -136,8 +135,7 @@
     next.src = src(p, 'view');
     $('lbCount').textContent = `${idx + 1} / ${list.length}`;
     $('lbPrev').hidden = $('lbNext').hidden = list.length < 2; // pri jednej fotke nie je kam listovať
-    $('lbDl').href = `${src(p, bw ? 'bw' : 'full')}?dl=1`;
-    lb.classList.toggle('bw', bw);
+    $('lbDl').href = `${src(p, 'full')}?dl=1`;
     refreshFavUI(p);
     [idx + 1, idx - 1].forEach((j) => list[j] && (new Image().src = src(list[j], 'view')));
     history.replaceState(null, '', `?p=${p.id}`);
@@ -155,7 +153,6 @@
   $('lbPrev').onclick = () => step(-1);
   $('lbNext').onclick = () => step(1);
   $('lbFav').onclick = () => toggleFav(list[idx]);
-  $('lbBw').onclick = () => { bw = !bw; show(); toast(bw ? 'Čiernobiela verzia, stiahne sa tiež čiernobielo' : 'Farebná verzia'); };
   $('lbShare').onclick = async () => {
     const url = `${location.origin}${location.pathname}?p=${list[idx].id}`;
     if (navigator.share) {

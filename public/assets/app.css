@@ -284,13 +284,11 @@ main { max-width: 1680px; margin: 0 auto; padding: 0 28px; }
 .stage { position: absolute; inset: 68px 96px 104px; touch-action: pan-y; }
 .stage img { width: 100%; height: 100%; object-fit: contain; transition: filter .3s, opacity .25s; user-select: none; -webkit-user-drag: none; }
 .stage img.swap { opacity: 0; }
-.lb.bw .stage img { filter: grayscale(1) contrast(1.06); }
 .dock { position: absolute; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 2px; padding: 6px; background: #fff; border-radius: 999px; box-shadow: 0 10px 40px rgba(0,0,0,.16), 0 0 0 1px rgba(0,0,0,.06); }
 .dock > * { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: 0; background: none; border-radius: 999px; color: var(--ink); text-decoration: none; cursor: pointer; font: 600 14px/1 var(--font); transition: background .15s, color .15s; white-space: nowrap; }
 .dock > *:hover { background: var(--soft); }
 .dock .on { color: var(--red); }
 .dock .on svg { fill: currentColor; }
-#lb.bw #lbBw { background: var(--ink); color: #fff; }
 .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 20px; font-size: 14px; font-weight: 500; border-radius: 999px; z-index: 200; animation: pop .2s var(--ease); white-space: nowrap; }
 
 /* ---------- mobil ---------- */

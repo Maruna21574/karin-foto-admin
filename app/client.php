@@ -26,11 +26,10 @@ if ($rest === 'og.jpg') {
     send_file(og_path($gallery), 'image/jpeg', null, false);
 }
 
-// ---- obrázky: /img/{id}/{thumb|view|full|bw}
-if (preg_match('#^img/(\d+)/(thumb|view|full|bw)$#', $rest, $m)) {
+// ---- obrázky: /img/{id}/{thumb|view|full}
+if (preg_match('#^img/(\d+)/(thumb|view|full)$#', $rest, $m)) {
     $photo = client_photo($gallery, $m[1]);
     $download = isset($_GET['dl']);
-    $name = pathinfo($photo['orig_name'], PATHINFO_FILENAME);
     switch ($m[2]) {
         case 'thumb':
             ensure_derivative('thumbs', $photo);
@@ -39,11 +38,10 @@ if (preg_match('#^img/(\d+)/(thumb|view|full|bw)$#', $rest, $m)) {
             ensure_derivative('views', $photo);
             send_file(photo_path('views', $photo), 'image/webp');
         case 'full':
-            $mime = mime_content_type(photo_path('originals', $photo)) ?: 'application/octet-stream';
+            // Typ podľa prípony: stiahnutie nesmie závisieť od rozšírenia fileinfo, ktoré hosting nemusí mať.
+            $mime = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp']
+                [strtolower(pathinfo($photo['filename'], PATHINFO_EXTENSION))] ?? 'application/octet-stream';
             send_file(photo_path('originals', $photo), $mime, $download ? $photo['orig_name'] : null);
-        case 'bw':
-            $bw = bw_path($photo) ?? not_found();
-            send_file($bw, 'image/jpeg', $download ? "$name-cb.jpg" : null);
     }
 }
 
@@ -57,11 +55,10 @@ if (preg_match('#^fav/(\d+)$#', $rest, $m) && $_SERVER['REQUEST_METHOD'] === 'PO
     json_out(['favorite' => (bool)$new, 'count' => (int)$count->fetchColumn()]);
 }
 
-// ---- ZIP: /zip?fav=1&bw=1
+// ---- ZIP: /zip, /zip?fav=1, /zip?section=ID
 if ($rest === 'zip') {
-    set_time_limit(0);
+    @set_time_limit(0);
     $onlyFav = isset($_GET['fav']);
-    $bw = isset($_GET['bw']);
     $sections = array_column(gallery_sections((int)$gallery['id']), 'title', 'id');
     $onlySection = isset($_GET['section']) ? valid_section((int)$gallery['id'], $_GET['section']) : null;
     $photos = array_values(array_filter(
@@ -84,13 +81,8 @@ if ($rest === 'zip') {
     $zip->open($tmp, ZipArchive::CREATE);
     $used = [];
     foreach ($photos as $p) {
-        if ($bw) {
-            $file = bw_path($p);
-            $name = pathinfo($p['orig_name'], PATHINFO_FILENAME) . '-cb.jpg';
-        } else {
-            $file = photo_path('originals', $p);
-            $name = $p['orig_name'];
-        }
+        $file = photo_path('originals', $p);
+        $name = $p['orig_name'];
         $path = $folder($p) . $name;
         if (isset($used[$path])) { // rovnaké meno súboru dvakrát
             $path = $folder($p) . pathinfo($name, PATHINFO_FILENAME) . '-' . $p['id'] . '.' . pathinfo($name, PATHINFO_EXTENSION);
@@ -104,7 +96,7 @@ if ($rest === 'zip') {
     $zip->close();
     $slugOf = fn(string $s) => slugify($s) ?: 'galeria';
     $zipName = 'attelierkay-' . $slugOf($gallery['title']) . ($onlySection ? '-' . $slugOf($sections[$onlySection]) : '')
-        . ($onlyFav ? '-oblubene' : '') . ($bw ? '-cb' : '') . '.zip';
+        . ($onlyFav ? '-oblubene' : '') . '.zip';
     register_shutdown_function(fn() => @unlink($tmp));
     send_file($tmp, 'application/zip', $zipName, false);
 }

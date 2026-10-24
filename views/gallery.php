@@ -43,7 +43,6 @@ foreach ($ogMeta as [$attr, $name, $content]) {
 
 $icoDl ='<svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19.5h14"/></svg>';
 $icoHeart = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>';
-$icoBw = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>';
 $icoShare = '<svg viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4l4 4M6 12v6a2 2 0 002 2h8a2 2 0 002-2v-6"/></svg>';
 $icoClose = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 require __DIR__ . '/_head.php';
@@ -67,7 +66,6 @@ require __DIR__ . '/_head.php';
       <a href="<?= e(url("g/$t/zip")) ?>"><?= $icoDl ?><span><b>Všetky fotky</b><small><?= $total ?> fotiek · ZIP</small></span></a>
       <a href="#" id="dlSec" hidden><?= $icoDl ?><span><b></b><small>ZIP</small></span></a>
       <a href="<?= e(url("g/$t/zip?fav=1")) ?>" data-fav><?= $icoHeart ?><span><b>Obľúbené</b><small><i data-favn><?= (int)$favCount ?></i> fotiek · ZIP</small></span></a>
-      <a href="<?= e(url("g/$t/zip?fav=1&bw=1")) ?>" data-fav><?= $icoBw ?><span><b>Obľúbené čiernobielo</b><small><i data-favn><?= (int)$favCount ?></i> fotiek · ZIP</small></span></a>
     </div>
   </details>
 </header>
@@ -145,7 +143,6 @@ if (str_starts_with($tel, '0')) {
   <button type="button" class="round lb-nav next" id="lbNext" aria-label="Ďalšia"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
   <div class="dock">
     <button type="button" id="lbFav"><?= $icoHeart ?><span>Obľúbené</span></button>
-    <button type="button" id="lbBw"><?= $icoBw ?><span>Čiernobielo</span></button>
     <button type="button" id="lbShare"><?= $icoShare ?><span>Zdieľať</span></button>
     <a id="lbDl" href="#"><?= $icoDl ?><span>Stiahnuť</span></a>
   </div>

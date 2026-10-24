@@ -1,7 +1,7 @@
 # Karin foto admin
 
 Galérie pre klientov fotografky Attelier Kay. Fotografka nahrá fotky do galérie (môže ich deliť do sekcií),
-klient dostane odkaz a na ňom fotky prezrie, označí obľúbené, prepne na čiernobielu verziu a stiahne.
+klient dostane odkaz a na ňom fotky prezrie, označí obľúbené a stiahne (jednu fotku, celú galériu, sekciu alebo len obľúbené).
 
 Čistý PHP bez frameworku a bez nutnosti inštalovať čokoľvek cez Composer. Databáza je jeden súbor SQLite.
 
