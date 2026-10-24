@@ -260,6 +260,18 @@ main { max-width: 1680px; margin: 0 auto; padding: 0 28px; }
 .contact-links a.primary svg { width: 18px; height: 18px; transition: transform .2s var(--ease); }
 .contact-links a.primary:hover svg { transform: translateX(3px); }
 .foot { border-top: 0; }
+
+/* vstavaný prehliadač (Facebook, Instagram…): upozornenie, že sťahovanie tam nejde */
+.inapp-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--ink); color: #fff; padding: 10px 16px; font-size: 13.5px; line-height: 1.35; }
+.inapp-bar button { flex: none; border: 0; background: #fff; color: var(--ink); border-radius: 999px; padding: 8px 14px; font: 600 13px var(--font); cursor: pointer; }
+.sheet-wrap { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease; }
+.sheet { background: #fff; width: min(520px, 100%); border-radius: 22px 22px 0 0; padding: 26px 22px calc(24px + env(safe-area-inset-bottom)); animation: rise .3s var(--ease) both; }
+.sheet h2 { font-size: 21px; margin-bottom: 10px; }
+.sheet p { margin: 0 0 14px; }
+.sheet ol { margin: 0 0 14px; padding-left: 20px; }
+.sheet li { margin-bottom: 6px; }
+.sheet .row { margin-top: 6px; }
+@media (min-width: 641px) { .sheet-wrap { align-items: center; } .sheet { border-radius: 22px; } }
 .foot-in { max-width: 1680px; margin: 0 auto; padding: 36px 28px 44px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; }
 .foot img { height: 34px; width: auto; }
 .foot .book { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none; padding: 12px 20px; border-radius: 999px; background: var(--soft); transition: background .15s; }

@@ -49,6 +49,12 @@ require __DIR__ . '/_head.php';
 ?>
 <body class="client" data-base="<?= e(url("g/$t")) ?>">
 
+<?php /* zobrazí sa len vo vstavanom prehliadači (Facebook, Messenger, Instagram…), kde sa nedá sťahovať */ ?>
+<div class="inapp-bar" id="inappBar" hidden>
+  <span>Si v aplikácii, kde sa fotky <b>nedajú stiahnuť</b>. Otvor odkaz v prehliadači.</span>
+  <button type="button" id="inappHow">Ako na to</button>
+</div>
+
 <header class="site" id="site">
   <a class="mark" href="#top" aria-label="Attelier Kay"><img src="<?= e(url('assets/logo-mark.png')) ?>" alt="Attelier Kay"></a>
 
@@ -148,6 +154,22 @@ if (str_starts_with($tel, '0')) {
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+
+<div class="sheet-wrap" id="inappSheet" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="inappTitle">
+    <h2 id="inappTitle">Sťahovanie funguje v prehliadači</h2>
+    <p>Aplikácia (Facebook, Messenger, Instagram…) otvorila galériu vo svojom vstavanom okne a to súbory sťahovať nevie. Prezerať a pridávať do obľúbených môžeš aj tu, na stiahnutie ale otvor galériu v prehliadači.</p>
+    <ol>
+      <li>Ťukni na <b>⋯</b> (tri bodky) alebo ikonu <b>kompasu</b> v rohu obrazovky.</li>
+      <li>Vyber <b>Otvoriť v Safari</b> (na Androide <b>Otvoriť v prehliadači</b> alebo <b>Chrome</b>).</li>
+    </ol>
+    <p class="muted small">Nenašiel si to? Skopíruj odkaz, vlož ho do Safari a otvor.</p>
+    <div class="row">
+      <button type="button" class="btn" id="inappCopy">Skopírovať odkaz</button>
+      <button type="button" class="btn ghost" id="inappClose">Zavrieť</button>
+    </div>
+  </div>
+</div>
 
 <script>window.PHOTOS = <?= json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>; window.SECTIONS = <?= json_encode($secData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <script src="<?= e(url('assets/gallery.js')) ?>?v=<?= filemtime(ROOT . '/public/assets/gallery.js') ?>"></script>

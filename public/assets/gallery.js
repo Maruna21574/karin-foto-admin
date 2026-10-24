@@ -195,6 +195,31 @@
   addEventListener('resize', updateSegFade);
   updateSegFade();
 
+  // Vstavaný prehliadač Facebooku, Messengera, Instagramu… súbory sťahovať nevie (na iPhone sa nestane nič).
+  // Rozpoznáme ho, upozorníme klienta a ponúkneme skopírovanie odkazu do Safari/Chrome.
+  const inApp = /FBAN|FBAV|FB_IAB|FBIOS|FBSS|Instagram|MessengerForiOS|Messenger|Line\/|MicroMessenger|Snapchat|TikTok|BytedanceWebview|LinkedInApp|Twitter|GSA\//i.test(navigator.userAgent);
+  if (inApp) {
+    const sheet = $('inappSheet');
+    $('inappBar').hidden = false;
+    const openHelp = () => { sheet.hidden = false; };
+    $('inappHow').onclick = openHelp;
+    $('inappClose').onclick = () => { sheet.hidden = true; };
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.hidden = true; });
+    $('inappCopy').onclick = async () => {
+      const url = location.origin + location.pathname;
+      try { await navigator.clipboard.writeText(url); toast('Odkaz skopírovaný, vlož ho do Safari'); sheet.hidden = true; }
+      catch (_) { prompt('Skopíruj odkaz a otvor ho v prehliadači:', url); }
+    };
+    // každé sťahovanie (fotka, ZIP) sa v tomto prehliadači len ukáže ako návod namiesto "nič sa nestalo"
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('#lbDl, .menu .pop a');
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openHelp();
+    }, true);
+  }
+
   // menu Stiahnuť sa zavrie kliknutím mimo alebo na položku
   const menu = $('dlMenu');
   document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
