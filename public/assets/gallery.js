@@ -4,9 +4,9 @@
   const $ = (id) => document.getElementById(id);
   const grid = $('grid'), lb = $('lb'), lbImg = $('lbImg');
   const small = window.innerWidth < 640;
-  const ROW_H = small ? 130 : window.innerWidth > 1600 ? 320 : 280; // cieľová výška riadku v px
   const HEART = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg>';
-  let filter = 'all';
+  let filter = 'all'; // 'all' | 'fav'
+  let currentSec = null; // sekcia, ktorú má klient práve na obrazovke
   let list = [];
   let idx = 0;
 
@@ -35,12 +35,18 @@
 
   const isVisible = (p) => filter === 'all' || (filter === 'fav' ? p.fav : String(p.s) === filter);
 
+  // prvky sa objavia (trieda .in), až keď sa dostanú do zobrazenia; bez podpory pozorovateľa sa ukážu hneď
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { rootMargin: '0px 0px -8% 0px' }) : null;
+  const reveal = (el) => (io ? requestAnimationFrame(() => io.observe(el)) : el.classList.add('in'));
+
   function makeTile(p, i) {
     const ratio = p.w / p.h;
     const fig = document.createElement('figure');
     fig.className = 'tile';
-    fig.style.flex = `${ratio * ROW_H} 1 ${ratio * ROW_H}px`;
-    fig.style.animationDelay = `${Math.min(i, 14) * 35}ms`;
+    fig.style.transitionDelay = `${(i % 2) * 70}ms`; // vedľajšie fotky naskakujú s malým oneskorením
+    reveal(fig);
     fig.innerHTML = `<i style="padding-bottom:${(100 / ratio).toFixed(3)}%"></i>` +
       `<img loading="lazy" alt="" src="${src(p, 'thumb')}">` +
       `<button type="button" class="fav ${p.fav ? 'on' : ''}" aria-label="Obľúbené">${HEART}</button>`;
@@ -53,6 +59,32 @@
     fig.addEventListener('click', () => open(list.indexOf(p)));
     return fig;
   }
+
+  // Fotky v stĺpcoch (2 na mobile) v pôvodnom pomere; každá ide do najnižšieho stĺpca, takže poradie ostáva zľava doprava.
+  const colCount = () => (window.innerWidth < 640 ? 2 : window.innerWidth < 1100 ? 3 : 4);
+  function masonry(tiles, items) {
+    const n = colCount();
+    const wrap = document.createElement('div');
+    wrap.className = 'masonry';
+    const cols = Array.from({ length: n }, () => {
+      const c = document.createElement('div');
+      c.className = 'mcol';
+      wrap.appendChild(c);
+      return { el: c, h: 0 };
+    });
+    tiles.forEach((t, i) => {
+      const low = cols.reduce((a, b) => (b.h < a.h ? b : a));
+      low.el.appendChild(t);
+      low.h += items[i].h / items[i].w;
+    });
+    return wrap;
+  }
+  let lastCols = colCount();
+  let resizeT = 0;
+  addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => { if (colCount() !== lastCols) { lastCols = colCount(); render(); } }, 150);
+  });
 
   function render() {
     const vis = photos.filter(isVisible);
@@ -74,15 +106,15 @@
         const cover = photos.find((p) => p.id === g.cover && p.s === g.id) || g.items[0];
         const h = document.createElement('h2');
         h.className = 'sec-title' + (g.id && cover ? ' hero' : '');
-        h.innerHTML = '<span></span><small>' + g.items.length + '</small>';
+        h.dataset.sec = g.id;
+        h.innerHTML = '<span></span><small></small>';
+        h.lastChild.textContent = g.id ? `${g.items.length} ${g.items.length === 1 ? 'fotka' : g.items.length < 5 ? 'fotky' : 'fotiek'}` : g.items.length;
         h.firstChild.textContent = g.title;
-        if (g.id && cover) h.style.backgroundImage = `url(${src(cover, 'view')})`;
+        if (g.id && cover) h.style.setProperty('--img', `url(${src(cover, 'view')})`);
+        reveal(h);
         grid.appendChild(h);
       }
-      const rows = document.createElement('div');
-      rows.className = 'rows';
-      g.items.forEach((p) => rows.appendChild(makeTile(p, n++)));
-      grid.appendChild(rows);
+      grid.appendChild(masonry(g.items.map((p) => makeTile(p, n++)), g.items));
     });
     updateCounts();
     updateSectionDownload();
@@ -91,7 +123,7 @@
   // v menu Stiahnuť sa pri vybranej sekcii objaví položka pre túto sekciu
   function updateSectionDownload() {
     const a = $('dlSec');
-    const sec = sections.find((s) => String(s.id) === filter);
+    const sec = filter === 'all' ? sections.find((s) => s.id === currentSec) : null;
     a.hidden = !sec;
     if (sec) {
       a.href = `${base}/zip?section=${sec.id}`;
@@ -276,13 +308,42 @@
     else if (dy > 90 && Math.abs(dx) < 60) close(); // potiahnutie nadol zavrie
   });
 
-  document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
-    document.querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
-    filter = b.dataset.filter;
-    b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-    render();
-    window.scrollTo({ top: 0, behavior: 'auto' });
+  // Filter pod úvodnou fotkou: sekcie plynulo doskrolujú na svoje miesto, „Obľúbené“ prepne zobrazenie.
+  // Počas skrolovania sa zvýrazňuje sekcia, v ktorej práve si.
+  const segBtns = [...document.querySelectorAll('.seg-btn')];
+  const headH = () => $('site').offsetHeight + $('filters').offsetHeight;
+  let spyLock = 0;
+  const goTo = (el) => {
+    spyLock = Date.now() + 900; // kým skrolovanie beží, zvýraznenie nemeníme
+    window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - headH() - 8), behavior: 'smooth' });
+  };
+  function setActive(key) {
+    const act = segBtns.find((x) => x.dataset.filter === String(key));
+    if (!act || act.classList.contains('active')) return;
+    segBtns.forEach((x) => x.classList.toggle('active', x === act));
+    const bar = act.parentElement; // len posun filtra do strán, stránka sa nehýbe
+    bar.scrollTo({ left: act.offsetLeft - (bar.clientWidth - act.offsetWidth) / 2, behavior: 'smooth' });
+  }
+  segBtns.forEach((b) => b.addEventListener('click', () => {
+    const f = b.dataset.filter;
+    const next = f === 'fav' ? 'fav' : 'all';
+    if (filter !== next) { filter = next; render(); }
+    if (f === 'fav' || f === 'all') currentSec = null;
+    else currentSec = Number(f);
+    setActive(f);
+    updateSectionDownload();
+    const target = f === 'fav' || f === 'all' ? grid : grid.querySelector(`[data-sec="${f}"]`);
+    if (target) goTo(target);
   }));
+  addEventListener('scroll', () => {
+    if (filter !== 'all' || !sections.length || Date.now() < spyLock) return;
+    let key = 'all';
+    grid.querySelectorAll('[data-sec]').forEach((h) => {
+      if (h.getBoundingClientRect().top <= headH() + 80) key = h.dataset.sec === '0' ? 'all' : h.dataset.sec;
+    });
+    const sec = key === 'all' ? null : Number(key);
+    if (sec !== currentSec) { currentSec = sec; setActive(key); updateSectionDownload(); }
+  }, { passive: true });
 
   // filtre sa dajú posúvať do strán: ak sa nezmestia, ukáž to zatmaveným okrajom
   const seg = $('seg');
@@ -321,9 +382,28 @@
   document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
   menu.querySelectorAll('.pop a').forEach((a) => a.addEventListener('click', () => setTimeout(() => (menu.open = false), 150)));
 
+  // úvodná fotka: pri skrolovaní text ide pomalšie než stránka a mizne, fotka za ním ešte pomalšie (paralaxa)
+  const intro = document.querySelector('.intro');
+  if (intro && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let ticking = false;
+    const parallax = () => {
+      ticking = false;
+      const y = window.scrollY, h = intro.offsetHeight;
+      if (y > h) return;
+      intro.style.setProperty('--ty', `${(y * 0.4).toFixed(1)}px`);
+      intro.style.setProperty('--py', `${(y * 0.25).toFixed(1)}px`);
+      intro.style.setProperty('--fade', Math.max(0, 1 - y / (h * 0.6)).toFixed(3));
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(parallax); } }, { passive: true });
+  }
+
   // jemná čiara pod hlavičkou po odskrolovaní
   const site = $('site');
-  const onScroll = () => site.classList.toggle('scrolled', window.scrollY > 8);
+  const bar = $('filters');
+  const onScroll = () => {
+    site.classList.toggle('scrolled', window.scrollY > 8);
+    bar.classList.toggle('stuck', bar.getBoundingClientRect().top <= site.offsetHeight + 1); // čiara pod filtrom, až keď sa prilepí
+  };
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
   render();

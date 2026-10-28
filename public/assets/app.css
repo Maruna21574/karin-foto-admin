@@ -181,13 +181,16 @@ select { font: inherit; color: var(--ink); background: #fff; border: 1px solid #
 @media (hover: none) { .thumb figcaption { transform: none; } }
 
 /* ================= KLIENT ================= */
+:root { --hh: 68px; }
 .site {
-  position: sticky; top: 0; z-index: 30; height: 68px; padding: 0 28px;
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px;
-  background: rgba(255,255,255,.82); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
-  transition: box-shadow .25s;
+  position: sticky; top: 0; z-index: 30; height: var(--hh); padding: 0 28px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px;
+  background: #fff;
 }
-.site.scrolled { box-shadow: 0 1px 0 var(--line); }
+.filterbar { position: sticky; top: var(--hh); z-index: 20; display: flex; justify-content: center; padding: 4px 28px 12px; background: #fff; scroll-margin-top: var(--hh); }
+.filterbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--line); opacity: 0; transition: opacity .25s; }
+.filterbar.stuck::after { opacity: 1; }
+.intro-msg { margin: 0 auto; max-width: 620px; padding: clamp(36px, 6vw, 84px) 24px clamp(12px, 2vw, 28px); text-align: center; font: 500 clamp(21px, 2.6vw, 28px)/1.45 "Cormorant Garamond", Georgia, serif; color: var(--ink); }
 .mark { justify-self: start; display: block; }
 .mark img { height: 34px; width: auto; }
 
@@ -197,10 +200,15 @@ select { font: inherit; color: var(--ink); background: #fff; border: 1px solid #
 .seg.more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
 .sec-title { display: flex; align-items: baseline; gap: 12px; font-size: clamp(24px, 3.4vw, 40px); letter-spacing: -.03em; margin: clamp(40px, 6vw, 80px) 0 18px; }
 .sec-title:first-child { margin-top: 8px; }
-.sec-title.hero { position: relative; align-items: flex-end; justify-content: space-between; height: clamp(190px, 34vw, 420px); padding: clamp(18px, 3vw, 40px); border-radius: 10px; overflow: hidden; color: #fff; background: var(--soft) center / cover no-repeat; }
-.sec-title.hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,.05) 65%); }
-.sec-title.hero > * { position: relative; }
-.sec-title.hero small { color: rgba(255,255,255,.85); }
+.sec-title.hero { position: relative; display: grid; place-items: center; place-content: center; gap: 14px; aspect-ratio: 16 / 8; max-height: 78svh; margin: clamp(40px, 7vw, 96px) -28px 8px; padding: 24px; border-radius: 0; overflow: hidden; color: #fff; text-align: center; background: var(--soft); font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: clamp(30px, 5vw, 64px); }
+.sec-title.hero::before { content: ""; position: absolute; inset: 0; background: var(--img) center / cover no-repeat; transform: scale(1.14); transition: transform 1.8s var(--ease); }
+.sec-title.hero::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.3); }
+.sec-title.hero > span { position: relative; z-index: 1; opacity: 0; transform: translateY(22px); transition: opacity 1s .25s, transform 1s .25s var(--ease); }
+.sec-title.hero.in::before { transform: scale(1); }
+.sec-title.hero.in > span { opacity: 1; transform: none; }
+.sec-title.hero small { color: #fff; position: relative; z-index: 1; font: 600 12px var(--font); letter-spacing: .22em; text-transform: uppercase; opacity: 0; transition: opacity 1s .55s; }
+.sec-title.hero.in small { opacity: 1; text-shadow: 0 1px 12px rgba(0,0,0,.55); }
+.sec-title.hero > span::after { content: ""; display: block; width: 44px; height: 1px; background: currentColor; opacity: .7; margin: 18px auto 0; }
 .sec-title small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
 .seg-btn { border: 0; background: none; color: var(--muted); cursor: pointer; font: 600 14px/1 var(--font); padding: 10px 18px; border-radius: 999px; transition: background .2s, color .2s, box-shadow .2s; white-space: nowrap; }
 .seg-btn span { font-weight: 500; opacity: .7; margin-left: 4px; }
@@ -229,10 +237,30 @@ main { max-width: 1680px; margin: 0 auto; padding: 0 28px; }
 .facts dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
 .msg { margin: 22px 0 0; max-width: 440px; color: var(--text); }
 
-.rows { display: flex; flex-wrap: wrap; gap: 8px; }
-.rows::after { content: ""; flex-grow: 1000000; }
-.tile { position: relative; margin: 0; cursor: zoom-in; background: var(--soft); border-radius: 6px; overflow: hidden; animation: rise .6s var(--ease) both; }
-@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+.masonry { display: flex; gap: 8px; align-items: flex-start; }
+.mcol { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.intro { position: relative; display: grid; place-items: center; min-height: calc(100svh - var(--hh)); overflow: hidden; background: var(--soft); color: #fff; text-align: center; }
+.intro::before { content: ""; position: absolute; inset: -26% 0 0; background: var(--img) center / cover no-repeat; animation: kenburns 16s var(--ease) both; }
+.intro::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,.34), rgba(0,0,0,.14) 40%, rgba(0,0,0,.14) 60%, rgba(0,0,0,.4)); }
+.intro h1, .cover-date, .cover-by, .cover-msg, .sec-title.hero > span { text-shadow: 0 2px 24px rgba(0,0,0,.35); }
+@keyframes kenburns { from { transform: scale(1.12); } to { transform: scale(1); } }
+@keyframes fadeup { from { opacity: 0; transform: translateY(26px); } }
+@keyframes fadein { from { opacity: 0; } }
+@keyframes bob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+.intro::before { translate: 0 var(--py, 0px); }
+.cover-in { translate: 0 var(--ty, 0px); opacity: var(--fade, 1); }
+.cover-by { translate: 0 calc(var(--ty, 0px) * .6); }
+.cover-in { position: relative; z-index: 1; padding: 0 24px; max-width: 1100px; }
+.cover-by, .cover-date, .intro h1, .sec-title.hero { font-family: "Cormorant Garamond", Georgia, serif; }
+.cover-by { z-index: 1; animation: fadein 1.4s .2s both; position: absolute; top: clamp(28px, 9vh, 90px); left: 0; right: 0; margin: 0; color: #fff; font-size: clamp(18px, 2.4vw, 24px); }
+.intro h1 { animation: fadeup 1.1s .35s var(--ease) both; color: #fff; margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; line-height: 1.05; font-size: clamp(44px, 9vw, 128px); overflow-wrap: anywhere; }
+.cover-msg { animation: fadeup 1.1s .9s var(--ease) both; margin: 18px auto 0; max-width: 460px; font: 500 15px/1.5 var(--font); opacity: .92; }
+.cover-date { animation: fadeup 1.1s .65s var(--ease) both; margin: clamp(16px, 3vw, 32px) 0 0; font-size: clamp(20px, 2.6vw, 30px); }
+.cover-arrow { position: absolute; z-index: 1; left: 50%; bottom: 28px; transform: translateX(-50%); color: #fff; animation: fadein 1.2s 1.2s both, bob 2.4s 1.2s ease-in-out infinite; }
+.cover-arrow svg { width: 22px; height: 56px; fill: none; stroke: currentColor; stroke-width: 1.4; display: block; }
+.head.no-title { padding-top: clamp(28px, 4vw, 52px); grid-template-columns: 1fr; }
+.tile { position: relative; margin: 0; cursor: zoom-in; background: var(--soft); border-radius: 0; overflow: hidden; opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.tile.in { opacity: 1; transform: none; }
 .tile i { display: block; }
 .tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s, transform .7s var(--ease); }
 .tile img.loaded { opacity: 1; }
@@ -256,7 +284,11 @@ main { max-width: 1680px; margin: 0 auto; padding: 0 28px; }
 
 .contact { margin-top: clamp(64px, 9vw, 130px); background: var(--soft); }
 .contact-in { max-width: 1680px; margin: 0 auto; padding: clamp(40px, 6vw, 84px) 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px 64px; align-items: center; }
-.contact h2 { font-size: clamp(30px, 4.6vw, 60px); letter-spacing: -.035em; line-height: 1.02; margin: 0 0 12px; }
+::selection { background: var(--ink); color: #fff; }
+.tile, .lb button, .dock > * { -webkit-tap-highlight-color: transparent; }
+
+.sec-title.hero:first-child { margin-top: 12px; }
+.contact h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; letter-spacing: -.01em; font-size: clamp(30px, 4.6vw, 60px); letter-spacing: -.035em; line-height: 1.02; margin: 0 0 12px; }
 .contact p { margin: 0; color: var(--muted); max-width: 440px; }
 .contact-links { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; align-items: stretch; }
 .contact-links a { display: flex; align-items: center; gap: 14px; text-decoration: none; background: #fff; border-radius: 16px; padding: 14px 22px 14px 18px; transition: transform .2s var(--ease), box-shadow .2s; }
@@ -326,7 +358,9 @@ main { max-width: 1680px; margin: 0 auto; padding: 0 28px; }
   .foot nav { justify-content: flex-start; }
 }
 @media (max-width: 640px) {
-  .site { height: auto; padding: 10px 14px 10px; grid-template-columns: auto 1fr; row-gap: 10px; }
+  :root { --hh: 58px; }
+  .site { padding: 0 14px; grid-template-columns: auto 1fr; }
+  .filterbar { padding: 2px 10px 10px; }
   .mark img { height: 28px; }
   .menu summary.dl { height: 38px; padding: 0 14px; }
   .seg { grid-column: 1 / -1; grid-row: 2; justify-content: stretch; }
@@ -335,8 +369,9 @@ main { max-width: 1680px; margin: 0 auto; padding: 0 28px; }
   main { padding: 0 8px; }
   .head { padding: 28px 6px 22px; }
   .facts { gap: 26px; }
-  .rows { gap: 4px; }
-  .tile { border-radius: 4px; }
+  .masonry, .mcol { gap: 6px; }
+  .intro { min-height: calc(100svh - var(--hh)); }
+  .sec-title.hero { margin-inline: -8px; aspect-ratio: 1; }
   .menu .pop { width: min(300px, calc(100vw - 28px)); }
   .stage { inset: 62px 0 96px; }
   /* na mobile sú šípky priamo nad fotkou, menšie a s jemným pozadím, aby boli vidieť na svetlej aj tmavej fotke */

@@ -58,14 +58,6 @@ require __DIR__ . '/_head.php';
 <header class="site" id="site">
   <a class="mark" href="#top" aria-label="Attelier Kay"><img src="<?= e(url('assets/logo-mark.png')) ?>" alt="Attelier Kay"></a>
 
-  <div class="seg" id="seg" role="tablist">
-    <button type="button" class="seg-btn active" data-filter="all">Všetky <span id="cntAll"><?= $total ?></span></button>
-    <?php foreach ($sections as $s): ?>
-      <button type="button" class="seg-btn" data-filter="<?= (int)$s['id'] ?>"><?= e($s['title']) ?> <span data-seccount="<?= (int)$s['id'] ?>"></span></button>
-    <?php endforeach; ?>
-    <button type="button" class="seg-btn" data-filter="fav">Obľúbené <span id="cntFav"><?= (int)$favCount ?></span></button>
-  </div>
-
   <details class="menu" id="dlMenu">
     <summary class="dl"><?= $icoDl ?><span>Stiahnuť</span></summary>
     <div class="pop">
@@ -77,7 +69,36 @@ require __DIR__ . '/_head.php';
   </details>
 </header>
 
+<?php $coverPhoto = og_cover_photo($gallery); ?>
+<?php if ($coverPhoto): ?>
+<?php /* úvodná fotka cez celú obrazovku s názvom a dátumom */ ?>
+<section class="intro" style="--img:url(<?= e(url("g/$t/img/{$coverPhoto['id']}/view")) ?>)">
+  <p class="cover-by">Fotografie od <?= e(cfg('site_name')) ?></p>
+  <div class="cover-in">
+    <h1><?= e($gallery['title']) ?></h1>
+    <?php if ($gallery['shoot_date']): ?><p class="cover-date"><?= e(format_date($gallery['shoot_date'])) ?></p><?php endif; ?>
+  </div>
+  <a class="cover-arrow" href="#filters" aria-label="Prejsť na fotky"><svg viewBox="0 0 24 60"><path d="M12 2v54m0 0L3 47m9 9l9-9"/></svg></a>
+</section>
+<?php endif; ?>
+
+<?php if ($coverPhoto && $gallery['message']): ?>
+<p class="intro-msg"><?= nl2br(e($gallery['message'])) ?></p>
+<?php endif; ?>
+
+<nav class="filterbar" id="filters" aria-label="Sekcie">
+  <div class="seg" id="seg" role="tablist">
+    <button type="button" class="seg-btn active" data-filter="all">Všetky <span id="cntAll"><?= $total ?></span></button>
+    <?php foreach ($sections as $s): ?>
+      <button type="button" class="seg-btn" data-filter="<?= (int)$s['id'] ?>"><?= e($s['title']) ?> <span data-seccount="<?= (int)$s['id'] ?>"></span></button>
+    <?php endforeach; ?>
+    <button type="button" class="seg-btn" data-filter="fav">Obľúbené <span id="cntFav"><?= (int)$favCount ?></span></button>
+  </div>
+
+</nav>
+
 <main id="top">
+  <?php if (!$coverPhoto): ?>
   <section class="head">
     <h1><?= e($gallery['title']) ?></h1>
     <div class="head-side">
@@ -89,6 +110,7 @@ require __DIR__ . '/_head.php';
       <?php if ($gallery['message']): ?><p class="msg"><?= nl2br(e($gallery['message'])) ?></p><?php endif; ?>
     </div>
   </section>
+  <?php endif; ?>
 
   <?php if (!$photos): ?><p class="empty">Fotky sa ešte nahrávajú, skús to o chvíľu.</p><?php endif; ?>
   <div id="grid"></div>
