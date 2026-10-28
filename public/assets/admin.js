@@ -76,15 +76,24 @@
     const fig = document.createElement('figure');
     fig.className = 'atile';
     fig.dataset.id = p.id;
+    const ratio = p.w / p.h;
+    fig.style.flex = `${ratio * 150} 1 ${ratio * 150}px`;
     fig.innerHTML =
-      `<img loading="lazy" alt="" src="${imgBase}/${p.id}/thumb">` +
+      `<i style="padding-bottom:${(100 / ratio).toFixed(3)}%"></i><img loading="lazy" alt="" src="${imgBase}/${p.id}/thumb">` +
       '<span class="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' +
       '<span class="heart"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/></svg></span>' +
       '<span class="badge">titulná</span>' +
+      '<span class="badge sec-badge">titulná sekcie</span>' +
       '<button type="button" class="cover-btn">Nastaviť ako titulnú</button>';
     fig.addEventListener('click', (e) => onTileClick(e, p.id));
     fig.querySelector('.cover-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
+      const sec = G.sections.find((x) => x.id === Number(tab));
+      if (sec) { // v sekcii sa nastavuje titulná fotka sekcie
+        const j = await post(`section/${sec.id}/cover`, { photo_id: sec.cover === p.id ? 0 : p.id });
+        if (j) { sec.cover = j.cover; syncTiles(); }
+        return;
+      }
       const j = await post(`photo/${p.id}/cover`);
       if (j) { G.cover = j.cover; syncTiles(); refreshOg(); }
     });
@@ -97,7 +106,10 @@
       if (!p) return;
       el.classList.toggle('sel', selected.has(id));
       el.querySelector('.heart').hidden = !p.fav;
-      el.querySelector('.badge').hidden = G.cover !== id;
+      const sec = G.sections.find((x) => x.id === Number(tab));
+      el.querySelector('.badge:not(.sec-badge)').hidden = !!sec || G.cover !== id;
+      el.querySelector('.sec-badge').hidden = !sec || sec.cover !== id;
+      el.querySelector('.cover-btn').textContent = sec ? (sec.cover === id ? 'Zrušiť titulnú sekcie' : 'Titulná fotka sekcie') : 'Nastaviť ako titulnú';
     });
   }
 
@@ -221,7 +233,7 @@
     if (!title) return;
     const j = await post('section/add', { title });
     if (!j) return;
-    G.sections.push({ id: j.id, title: j.title });
+    G.sections.push({ id: j.id, title: j.title, cover: 0 });
     e.target.title.value = '';
     e.target.hidden = true;
     tab = j.id; clearSel();

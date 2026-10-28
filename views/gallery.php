@@ -11,7 +11,7 @@ $data = array_map(fn($p) => [
     'fav' => (bool)$p['favorite'],
     's' => $p['section_id'] ? (int)$p['section_id'] : 0,
 ], $photos);
-$secData = array_map(fn($s) => ['id' => (int)$s['id'], 'title' => $s['title']], $sections);
+$secData = array_map(fn($s) => ['id' => (int)$s['id'], 'title' => $s['title'], 'cover' => (int)$s['cover_photo_id']], $sections);
 $booking = cfg('booking_url', cfg('website'));
 
 // náhľad pri zdieľaní odkazu (Messenger, WhatsApp, iMessage, Facebook…)
@@ -71,6 +71,7 @@ require __DIR__ . '/_head.php';
     <div class="pop">
       <a href="<?= e(url("g/$t/zip")) ?>"><?= $icoDl ?><span><b>Všetky fotky</b><small><?= $total ?> fotiek · ZIP</small></span></a>
       <a href="#" id="dlSec" hidden><?= $icoDl ?><span><b></b><small>ZIP</small></span></a>
+      <a href="#" id="dlPhotos" hidden><?= $icoHeart ?><span><b>Uložiť do Fotiek</b><small>zobrazené fotky po 10</small></span></a>
       <a href="<?= e(url("g/$t/zip?fav=1")) ?>" data-fav><?= $icoHeart ?><span><b>Obľúbené</b><small><i data-favn><?= (int)$favCount ?></i> fotiek · ZIP</small></span></a>
     </div>
   </details>
@@ -154,6 +155,11 @@ if (str_starts_with($tel, '0')) {
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="phbar" id="phBar" hidden>
+  <span id="phText"></span>
+  <button type="button" class="btn" id="phGo"></button>
+  <button type="button" class="btn ghost" id="phClose">Zavrieť</button>
+</div>
 
 <div class="sheet-wrap" id="inappSheet" hidden>
   <div class="sheet" role="dialog" aria-labelledby="inappTitle">

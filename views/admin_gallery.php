@@ -14,7 +14,7 @@ $state = [
         'h' => (int)$p['height'],
         'fav' => (bool)$p['favorite'],
     ], $photos),
-    'sections' => array_map(fn($s) => ['id' => (int)$s['id'], 'title' => $s['title']], $sections),
+    'sections' => array_map(fn($s) => ['id' => (int)$s['id'], 'title' => $s['title'], 'cover' => (int)$s['cover_photo_id']], $sections),
     'cover' => (int)$gallery['cover_photo_id'],
 ];
 require __DIR__ . '/_head.php';

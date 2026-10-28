@@ -102,6 +102,10 @@ function db(): PDO
         $pdo->exec('ALTER TABLE galleries ADD COLUMN slug TEXT');
     }
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_galleries_slug ON galleries(slug)');
+    $scols = array_column($pdo->query('PRAGMA table_info(sections)')->fetchAll(), 'name');
+    if (!in_array('cover_photo_id', $scols, true)) {
+        $pdo->exec('ALTER TABLE sections ADD COLUMN cover_photo_id INTEGER');
+    }
     $cols = array_column($pdo->query('PRAGMA table_info(photos)')->fetchAll(), 'name');
     if (!in_array('section_id', $cols, true)) {
         $pdo->exec('ALTER TABLE photos ADD COLUMN section_id INTEGER');

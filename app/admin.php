@@ -199,7 +199,7 @@ if ($sub === 'section/add') {
     json_out(['ok' => true, 'id' => (int)db()->lastInsertId(), 'title' => $title]);
 }
 
-if (preg_match('#^section/(\d+)/(rename|delete|up|down)$#', $sub, $sm)) {
+if (preg_match('#^section/(\d+)/(rename|delete|up|down|cover)$#', $sub, $sm)) {
     $sid = valid_section((int)$gallery['id'], $sm[1]) ?? not_found();
     switch ($sm[2]) {
         case 'rename':
@@ -213,6 +213,12 @@ if (preg_match('#^section/(\d+)/(rename|delete|up|down)$#', $sub, $sm)) {
             db()->prepare('UPDATE photos SET section_id = NULL WHERE section_id = ?')->execute([$sid]);
             db()->prepare('DELETE FROM sections WHERE id = ?')->execute([$sid]);
             break;
+        case 'cover': // titulná fotka sekcie (0 = žiadna, použije sa prvá fotka)
+            $s = db()->prepare('SELECT id FROM photos WHERE id = ? AND gallery_id = ?');
+            $s->execute([(int)($_POST['photo_id'] ?? 0), $gallery['id']]);
+            $pid = (int)$s->fetchColumn();
+            db()->prepare('UPDATE sections SET cover_photo_id = ? WHERE id = ?')->execute([$pid ?: null, $sid]);
+            json_out(['ok' => true, 'cover' => $pid]);
         default: // up / down: prehodí poradie so susedom
             $all = array_column(gallery_sections((int)$gallery['id']), 'id');
             $i = array_search($sid, array_map('intval', $all), true);
@@ -256,6 +262,7 @@ if ($sub === 'photos/delete') {
     $in = implode(',', $ids);
     $rows = db()->query("SELECT * FROM photos WHERE id IN ($in)")->fetchAll();
     db()->exec("DELETE FROM photos WHERE id IN ($in)");
+    db()->exec("UPDATE sections SET cover_photo_id = NULL WHERE cover_photo_id IN ($in)");
     foreach ($rows as $row) {
         delete_photo_files($row);
     }

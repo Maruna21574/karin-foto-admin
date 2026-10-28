@@ -59,8 +59,8 @@
     // skupiny: každá sekcia zvlášť, na konci fotky bez sekcie
     let groups = [{ title: null, items: vis }];
     if (sections.length) {
-      groups = sections.map((s) => ({ title: s.title, items: vis.filter((p) => p.s === s.id) }));
-      groups.push({ title: 'Ostatné', items: vis.filter((p) => !sections.some((s) => s.id === p.s)) });
+      groups = sections.map((s) => ({ id: s.id, cover: s.cover, title: s.title, items: vis.filter((p) => p.s === s.id) }));
+      groups.push({ id: 0, title: 'Ostatné', items: vis.filter((p) => !sections.some((s) => s.id === p.s)) });
       groups = groups.filter((g) => g.items.length);
     }
     list = groups.flatMap((g) => g.items);
@@ -70,10 +70,13 @@
     let n = 0;
     groups.forEach((g) => {
       if (g.title) {
+        // titulná fotka sekcie (inak prvá fotka) je pozadím nadpisu
+        const cover = photos.find((p) => p.id === g.cover && p.s === g.id) || g.items[0];
         const h = document.createElement('h2');
-        h.className = 'sec-title';
+        h.className = 'sec-title' + (g.id && cover ? ' hero' : '');
         h.innerHTML = '<span></span><small>' + g.items.length + '</small>';
         h.firstChild.textContent = g.title;
+        if (g.id && cover) h.style.backgroundImage = `url(${src(cover, 'view')})`;
         grid.appendChild(h);
       }
       const rows = document.createElement('div');
@@ -136,6 +139,7 @@
     $('lbCount').textContent = `${idx + 1} / ${list.length}`;
     $('lbPrev').hidden = $('lbNext').hidden = list.length < 2; // pri jednej fotke nie je kam listovať
     $('lbDl').href = `${src(p, 'full')}?dl=1`;
+    if (typeof resetDl === 'function') resetDl();
     refreshFavUI(p);
     [idx + 1, idx - 1].forEach((j) => list[j] && (new Image().src = src(list[j], 'view')));
     history.replaceState(null, '', `?p=${p.id}`);
@@ -161,6 +165,98 @@
     try { await navigator.clipboard.writeText(url); toast('Odkaz skopírovaný'); }
     catch (_) { prompt('Skopíruj odkaz:', url); }
   };
+  // Na mobile otvorí stiahnutie systémové menu zdieľania, kde je „Uložiť obrázok“ (iPhone) / „Uložiť“ do Fotiek.
+  // Obyčajný odkaz na stiahnutie ukladá do Súborov. ZIP sa do Fotiek uložiť nedá, to je obmedzenie telefónu.
+  const touch = matchMedia('(pointer: coarse)').matches;
+  const dlLabel = $('lbDl').querySelector('span');
+  const dlText = dlLabel.textContent;
+  let dlReady = null; // { id, file }: stiahnutá fotka čaká na druhé ťuknutie, ak telefón nepustil zdieľanie hneď
+  $('lbDl').addEventListener('click', async (e) => {
+    if (!touch || !navigator.canShare || !navigator.share) return; // obyčajné stiahnutie
+    const p = list[idx];
+    e.preventDefault();
+    try {
+      let file = dlReady && dlReady.id === p.id ? dlReady.file : null;
+      if (!file) {
+        dlLabel.textContent = 'Pripravujem…';
+        const blob = await (await fetch(src(p, 'full'))).blob();
+        file = new File([blob], `attelierkay-${p.id}.jpg`, { type: blob.type || 'image/jpeg' });
+      }
+      if (!navigator.canShare({ files: [file] })) throw new Error('nepodporene');
+      try {
+        await navigator.share({ files: [file] });
+        dlReady = null;
+        dlLabel.textContent = dlText;
+      } catch (err) {
+        if (err.name === 'AbortError') { dlReady = null; dlLabel.textContent = dlText; return; }
+        if (err.name === 'NotAllowedError') { // zdieľať sa smie len hneď po ťuknutí: fotka je už stiahnutá, stačí ťuknúť znova
+          dlReady = { id: p.id, file };
+          dlLabel.textContent = 'Uložiť do Fotiek';
+          toast('Ťukni ešte raz na „Uložiť do Fotiek“');
+          return;
+        }
+        throw err;
+      }
+    } catch (_) { // záloha: bežné stiahnutie
+      dlLabel.textContent = dlText;
+      location.href = `${src(p, 'full')}?dl=1`;
+    }
+  });
+  // Viac fotiek naraz do Fotiek (zobrazený filter: všetky / sekcia / obľúbené), po 10. Dva kroky, lebo
+  // telefón dovolí zdieľať len hneď po ťuknutí: 1. stiahne sa dávka, 2. ťuknutím sa otvorí zdieľanie.
+  const BATCH = 10;
+  const dlPhotos = $('dlPhotos'), phBar = $('phBar'), phGo = $('phGo'), phText = $('phText');
+  let ph = null; // { items, pos, files }
+  const canShareFiles = () => { try { return touch && navigator.canShare && navigator.canShare({ files: [new File([''], 'a.jpg', { type: 'image/jpeg' })] }); } catch (_) { return false; } };
+  if (canShareFiles()) dlPhotos.hidden = false;
+
+  async function phPrepare() {
+    const chunk = ph.items.slice(ph.pos, ph.pos + BATCH);
+    phGo.disabled = true;
+    phGo.textContent = 'Sťahujem…';
+    phText.textContent = `Fotky ${ph.pos + 1}–${ph.pos + chunk.length} z ${ph.items.length}`;
+    try {
+      ph.files = await Promise.all(chunk.map(async (p) => {
+        const blob = await (await fetch(src(p, 'full'))).blob();
+        return new File([blob], `attelierkay-${p.id}.jpg`, { type: blob.type || 'image/jpeg' });
+      }));
+      phGo.disabled = false;
+      phGo.textContent = `Uložiť ${chunk.length} ${chunk.length === 1 ? 'fotku' : chunk.length < 5 ? 'fotky' : 'fotiek'} do Fotiek`;
+    } catch (_) {
+      phBar.hidden = true;
+      toast('Sťahovanie zlyhalo, skús to znova.');
+    }
+  }
+  dlPhotos.addEventListener('click', (e) => {
+    e.preventDefault();
+    const items = list.slice();
+    if (!items.length) return;
+    ph = { items, pos: 0, files: [] };
+    phBar.hidden = false;
+    phPrepare();
+  });
+  phGo.onclick = async () => {
+    if (!ph || !ph.files.length) return;
+    try {
+      await navigator.share({ files: ph.files });
+    } catch (err) {
+      if (err.name === 'AbortError') return; // zrušené, dá sa ťuknúť znova
+      toast('Uloženie sa nepodarilo, skús to znova.');
+      return;
+    }
+    ph.pos += ph.files.length;
+    ph.files = [];
+    if (ph.pos >= ph.items.length) {
+      phBar.hidden = true;
+      toast('Hotovo, fotky sú vo Fotkách.');
+    } else {
+      phPrepare();
+    }
+  };
+  $('phClose').onclick = () => { phBar.hidden = true; ph = null; };
+
+  const resetDl = () => { dlReady = null; dlLabel.textContent = dlText; };
+
   // dvojklik / dvojitý ťuk na fotku = obľúbená
   lbImg.addEventListener('dblclick', () => toggleFav(list[idx]));
 
