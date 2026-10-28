@@ -61,9 +61,22 @@
   }
 
   // Fotky v stĺpcoch (2 na mobile) v pôvodnom pomere; každá ide do najnižšieho stĺpca, takže poradie ostáva zľava doprava.
-  const colCount = () => (window.innerWidth < 640 ? 2 : window.innerWidth < 1100 ? 3 : 4);
+  // Na mobile 2 stĺpce; na väčších displejoch riadky vyplnené celou šírkou (bez prázdnych miest).
+  const colCount = () => (window.innerWidth < 640 ? 2 : 0);
+  const ROW_H = window.innerWidth > 1600 ? 320 : 260; // cieľová výška riadku v px
   function masonry(tiles, items) {
     const n = colCount();
+    if (!n) {
+      const rows = document.createElement('div');
+      rows.className = 'rows';
+      tiles.forEach((t, i) => {
+        const r = items[i].w / items[i].h;
+        t.style.flex = `${r * ROW_H} 1 ${r * ROW_H}px`;
+        t.style.maxWidth = `${Math.round(r * ROW_H * 1.45)}px`; // posledný riadok sa roztiahne, ale fotky nenarastú obrovské
+        rows.appendChild(t);
+      });
+      return rows;
+    }
     const wrap = document.createElement('div');
     wrap.className = 'masonry';
     const cols = Array.from({ length: n }, () => {
